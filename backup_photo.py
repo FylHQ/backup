@@ -21,7 +21,7 @@ def mkdir(path, host=None):
       return run('mkdir', '-p', f'{path}')
    
 def rsync(inputPath, fileList, outputPath, dryRun=False, host=None):
-   args = ["rsync", "-avzz", "--files-from", fileList, inputPath]
+   args = ["rsync", "-av", "--files-from", fileList, inputPath]
    if dryRun:
       args.append('-n')
    
