@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os, re, tempfile, subprocess, argparse
 
 datePattern = re.compile('.*(20\d{2})-?(\d{2})-?\d{2}.*')
