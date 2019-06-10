@@ -1,29 +1,37 @@
 #!/usr/bin/env python3
 
-import os, re, tempfile, subprocess, argparse
+import os, sys, re, tempfile, subprocess, argparse
 
 datePattern = re.compile('.*(20\d{2})-?(\d{2})-?\d{2}.*')
 
+
 def run(*args):
-   pcs = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-   for line in pcs.stdout.splitlines():
+   """p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+   for line in p.stdout.splitlines():
       if all(line.find(x) == -1 for x in ('cannot listen to port', 'Address already in use', 'Could not request local forwarding')):
-         print(line)
-   if pcs.returncode != 0:
+         print(line)"""
+
+   p = subprocess.run(args, stdout=sys.stdout, stderr=sys.stderr)
+   if p.returncode != 0:
       return False
    else:
       return True
 
-def mkdir(path, host=None):
+def mkdir(host, path):
    if host:
       return run('ssh', host, f'mkdir -p "{path}"')
    else:
       return run('mkdir', '-p', f'{path}')
    
-def rsync(inputPath, fileList, outputPath, dryRun=False, host=None):
-   args = ["rsync", "-av", "--files-from", fileList, inputPath]
+def rsync(inputPath, fileList, host, outputPath, showProgress=False, dryRun=False):
+   args = ["rsync", "-av", "--files-from", fileList]
    if dryRun:
       args.append('-n')
+
+   if showProgress:
+      args.append('--progress')
+
+   args.append(inputPath)
    
    if host:
       args.append(f'{host}:"{outputPath}"')
@@ -47,7 +55,7 @@ def sortFiles(inputPath):
             orphans.append(os.path.join(os.path.relpath(directory, inputPath), filename + '\n'))
    return (files, orphans)
 
-def createYearDirs(files, outputPath, host=None):
+def createYearDirs(files, host, outputPath):
    years = set()
    for directory in files:
       for year in files[directory]:
@@ -55,16 +63,16 @@ def createYearDirs(files, outputPath, host=None):
    
    for year in years:
       yearOut = f'{outputPath}/{year}'
-      if not mkdir(yearOut, host):
+      if not mkdir(host, yearOut):
          print(f'Cannot create directory: {yearOut}')
          return False
    
    return True
 
-def backup(inputPath, outputPath, dryRun=False, host=None):
+def backup(inputPath, host, outputPath, showProgress=False, dryRun=False):
    (files, orphans) = sortFiles(inputPath)
 
-   if not dryRun and not createYearDirs(files, outputPath, host):
+   if not dryRun and not createYearDirs(files, host, outputPath):
       return False
    
    filesList = tempfile.NamedTemporaryFile('w', delete=True)
@@ -75,7 +83,7 @@ def backup(inputPath, outputPath, dryRun=False, host=None):
                f.writelines(files[directory][year][month])
 
             monthOut = f'{outputPath}/{year}/{month}/'
-            if not rsync(directory, filesList.name, monthOut, dryRun, host):
+            if not rsync(directory, filesList.name, host, monthOut, showProgress, dryRun):
                print(f'Cannot rsync directory {directory} to {monthOut}')
                return False
             else:
@@ -85,7 +93,7 @@ def backup(inputPath, outputPath, dryRun=False, host=None):
       with open(filesList.name, 'w') as f:
          f.writelines(orphans)
 
-      if not rsync(inputPath, filesList.name, outputPath, dryRun, host):
+      if not rsync(inputPath, filesList.name, host, outputPath, showProgress, dryRun):
          print(f'Cannot rsync orphans from directory {inputPath} to {outputPath}')
          return False
       else:
@@ -99,6 +107,7 @@ if __name__ == "__main__":
    parser.add_argument('input')
    parser.add_argument('--host', '-h', help='Output host')
    parser.add_argument('--dry-run', '-n', action="store_true", help='Perform a trial run with no changes made')
+   parser.add_argument('--progress', action="store_true", help='Show progress during transfer')
    parser.add_argument('output')
    args = parser.parse_args()
 
@@ -114,7 +123,7 @@ if __name__ == "__main__":
    if args.host:
       print(f'Host: {args.host}')
    
-   if backup(inputPath, outputPath, args.dry_run, args.host):
+   if backup(inputPath, args.host, outputPath, args.progress, args.dry_run):
       print('Backup completed successfully')
    else:
       print('Some error has occured')
