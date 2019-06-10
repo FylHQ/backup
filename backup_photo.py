@@ -64,7 +64,7 @@ def createYearDirs(files, outputPath, host=None):
 def backup(inputPath, outputPath, dryRun=False, host=None):
    (files, orphans) = sortFiles(inputPath)
 
-   if not createYearDirs(files, outputPath, host):
+   if not dryRun and not createYearDirs(files, outputPath, host):
       return False
    
    filesList = tempfile.NamedTemporaryFile('w', delete=True)
