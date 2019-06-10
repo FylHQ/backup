@@ -21,7 +21,7 @@ def mkdir(path, host=None):
       return run('mkdir', '-p', f'{path}')
    
 def rsync(inputPath, fileList, outputPath, host=None):
-   args = ["rsync", "-avz", "--files-from", fileList, inputPath]
+   args = ["rsync", "-avzz", "--files-from", fileList, inputPath]
    if host:
       args.append(f'{host}:{outputPath}')
    else:
@@ -106,5 +106,7 @@ if __name__ == "__main__":
    if args.host:
       print(f'Host: {args.host}')
    
-   if not backup(inputPath, outputPath, args.host):
+   if backup(inputPath, outputPath, args.host):
+      print('Backup completed successfully')
+   else:
       print('Some error has occured')
