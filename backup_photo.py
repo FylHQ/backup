@@ -102,8 +102,6 @@ if __name__ == "__main__":
    parser.add_argument('output')
    args = parser.parse_args()
 
-   print(args)
-
    inputPath = os.path.realpath(os.path.expanduser(args.input))
    print(f'Input folder: {inputPath}')
 
