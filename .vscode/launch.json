@@ -10,7 +10,7 @@
          "request": "launch",
          "program": "${file}",
          "console": "integratedTerminal",
-         "args": ["~/Pictures/test_backup2", "/tmp/qqq", "--host", "home"]
+         "args": ["~/Pictures/test backup2", "/tmp/rrr 1", "--host", "home"]
       }
    ]
 }
