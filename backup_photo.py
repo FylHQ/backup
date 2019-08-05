@@ -40,7 +40,7 @@ def rsync(inputPath, fileList, host, outputPath, showProgress=False, dryRun=Fals
 
    return run(*args)
 
-def sortFiles(inputPath):
+def sortFiles(inputPath, startMonth):
    files = {}
    orphans = []
 
@@ -50,7 +50,9 @@ def sortFiles(inputPath):
          if m:
             year = m.group(1)
             month = m.group(2)
-            files.setdefault(directory, {}).setdefault(year, {}).setdefault(month, []).append(filename + '\n')
+            
+            if not startMonth or (int(year) * 100 + int(month) >= startMonth):
+               files.setdefault(directory, {}).setdefault(year, {}).setdefault(month, []).append(filename + '\n')
          else:
             orphans.append(os.path.join(os.path.relpath(directory, inputPath), filename + '\n'))
    return (files, orphans)
@@ -69,8 +71,8 @@ def createYearDirs(files, host, outputPath):
    
    return True
 
-def backup(inputPath, host, outputPath, showProgress=False, dryRun=False):
-   (files, orphans) = sortFiles(inputPath)
+def backup(inputPath, startMonth, host, outputPath, showProgress, dryRun):
+   (files, orphans) = sortFiles(inputPath, startMonth)
 
    if not dryRun and not createYearDirs(files, host, outputPath):
       return False
@@ -106,6 +108,7 @@ if __name__ == "__main__":
    parser.add_argument('--help', action='help', default=argparse.SUPPRESS, help=argparse._('show this help message and exit'))
    parser.add_argument('input')
    parser.add_argument('--host', '-h', help='Output host')
+   parser.add_argument('--start', '-s', type=int, help='Start month (YYYYMM)')
    parser.add_argument('--dry-run', '-n', action="store_true", help='Perform a trial run with no changes made')
    parser.add_argument('--progress', action="store_true", help='Show progress during transfer')
    parser.add_argument('output')
@@ -117,13 +120,16 @@ if __name__ == "__main__":
    outputPath = os.path.realpath(os.path.expanduser(args.output))
    print(f'Output folder: {outputPath}')
 
+   if args.start:
+      print(f'Start month: {args.start}')
+
    if args.dry_run:
       print('Performing dry run')
 
    if args.host:
       print(f'Host: {args.host}')
    
-   if backup(inputPath, args.host, outputPath, args.progress, args.dry_run):
+   if backup(inputPath, args.start, args.host, outputPath, args.progress, args.dry_run):
       print('Backup completed successfully')
    else:
       print('Some error has occured')
