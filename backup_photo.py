@@ -23,8 +23,12 @@ def mkdir(host, path):
    else:
       return run('mkdir', '-p', f'{path}')
    
-def rsync(inputPath, fileList, host, outputPath, showProgress=False, dryRun=False):
-   args = ["rsync", "-av", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r", "--files-from", fileList]
+def rsync(inputPath, host, outputPath, fileList, showProgress, dryRun):
+   args = ["rsync", "-av", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
+   if fileList:
+      args.append('--files-from')
+      args.append(fileList)
+
    if dryRun:
       args.append('-n')
 
@@ -85,7 +89,7 @@ def backup(inputPath, startMonth, host, outputPath, showProgress, dryRun):
                f.writelines(files[directory][year][month])
 
             monthOut = f'{outputPath}/{year}/{month}/'
-            if not rsync(directory, filesList.name, host, monthOut, showProgress, dryRun):
+            if not rsync(directory, host, monthOut, filesList.name, showProgress, dryRun):
                print(f'Cannot rsync directory {directory} to {monthOut}')
                return False
             else:
@@ -95,7 +99,7 @@ def backup(inputPath, startMonth, host, outputPath, showProgress, dryRun):
       with open(filesList.name, 'w') as f:
          f.writelines(orphans)
 
-      if not rsync(inputPath, filesList.name, host, outputPath, showProgress, dryRun):
+      if not rsync(inputPath, host, outputPath, filesList.name, showProgress, dryRun):
          print(f'Cannot rsync orphans from directory {inputPath} to {outputPath}')
          return False
       else:
@@ -111,6 +115,7 @@ if __name__ == "__main__":
    parser.add_argument('--start', '-s', type=int, help='Start month (YYYYMM)')
    parser.add_argument('--dry-run', '-n', action="store_true", help='Perform a trial run with no changes made')
    parser.add_argument('--progress', action="store_true", help='Show progress during transfer')
+   parser.add_argument('--raw', action="store_true", help='Backup without breakdown into years and months')
    parser.add_argument('output')
    args = parser.parse_args()
 
@@ -129,7 +134,12 @@ if __name__ == "__main__":
    if args.host:
       print(f'Host: {args.host}')
    
-   if backup(inputPath, args.start, args.host, outputPath, args.progress, args.dry_run):
+   if args.raw:
+      result = rsync(inputPath, args.host, outputPath, None, args.progress, args.dry_run)
+   else:
+      result = backup(inputPath, args.start, args.host, outputPath, args.progress, args.dry_run)
+
+   if result:
       print('Backup completed successfully')
    else:
       print('Some error has occured')
