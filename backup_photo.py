@@ -120,6 +120,8 @@ if __name__ == "__main__":
    args = parser.parse_args()
 
    inputPath = os.path.realpath(os.path.expanduser(args.input))
+   if args.raw and args.input.endswith('/'):
+      inputPath += '/'
    print(f'Input folder: {inputPath}')
 
    outputPath = os.path.realpath(os.path.expanduser(args.output))
